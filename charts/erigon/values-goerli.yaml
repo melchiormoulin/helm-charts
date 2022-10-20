@@ -1,0 +1,6 @@
+erigon:
+  extraArgs:
+    chain: "goerli"
+
+persistence:
+  size: 100Gi

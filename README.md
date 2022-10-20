@@ -1,6 +1,8 @@
 # Kiln Community Kubernetes Helm Charts
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+![kiln-logo](docs/img/Kiln_Logo-Transparent-Dark.svg)
+
+[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
 The code is provided as-is with no warranties.
 
@@ -26,5 +28,5 @@ We'd love to have you contribute! Please refer to our
 
 ## License
 
-[MIT License](LICENSE).
+[Apache 2.0 License](LICENSE).
 

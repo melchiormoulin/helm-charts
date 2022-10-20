@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "teku-beacon.fullname" . }}-metrics
+  labels:
+    {{- include "teku-beacon.labels" . | nindent 4 }}
+spec:
+  type: ClusterIP
+  publishNotReadyAddresses: true
+  ports:
+    - port: 8008
+      name: metrics
+      targetPort: metrics
+      protocol: TCP
+  selector:
+    {{- include "teku-beacon.selectorLabels" . | nindent 4 }}

@@ -1,0 +1,38 @@
+name: Release Charts
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  id-token: write
+  actions: write
+  pull-requests: write
+  issues: write
+  contents: read
+
+jobs:
+  helm-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Install Helm
+        uses: azure/setup-helm@v3
+        with:
+          version: v3.8.0
+
+      - name: 'helm:package:create'
+        run: |
+          for chart in charts/*; do helm package $chart; done
+
+      - name: 'helm:package:push'
+        run: |
+          echo ${{ secrets.GH_TOKEN }} | helm registry login ghcr.io --username kilnfi --password-stdin
+          for package in $(find . -name "*.tgz" -maxdepth 1); do
+            helm push $package oci://ghcr.io/kilnfi/helm-charts/
+          done

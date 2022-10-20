@@ -1,0 +1,11 @@
+apiVersion: v2
+name: teku-beacon
+description: A Helm chart for Teku Ethereum Beacon Chain
+sources:
+  - https://github.com/ConsenSys/teku
+type: application
+version: 0.3.0
+appVersion: "22.5.0-jdk17"
+maintainers:
+  - name: kiln
+    email: contact@kiln.fi

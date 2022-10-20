@@ -1,0 +1,152 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "lighthouse-beacon.fullname" . }}
+  labels:
+    {{- include "lighthouse-beacon.labels" . | nindent 4 }}
+spec:
+  serviceName: {{ if .Values.serviceName }}{{ .Values.serviceName }}{{ else }}{{ include "lighthouse-beacon.fullname" . }}{{ end }}
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  podManagementPolicy: {{ .Values.podManagementPolicy }}
+  updateStrategy:
+    type: {{ .Values.updateStrategyType }}
+    {{- if (eq "OnDelete" .Values.updateStrategyType) }}
+    rollingUpdate: null
+    {{- end }}
+  selector:
+    matchLabels:
+      {{- include "lighthouse-beacon.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "lighthouse-beacon.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "lighthouse-beacon.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          volumeMounts:
+            - mountPath: {{ .Values.config.datadir }}
+              name: data
+            - mountPath: /entrypoint
+              name: entrypoint
+          {{- if .Values.lighthouse.jwtSecret }}
+            - name: jwt-secret
+              mountPath: /jwt-secret
+          {{- end }}
+          command:
+            - /entrypoint/entrypoint.sh
+          args:
+            - lighthouse
+            - beacon_node
+            - --datadir={{ .Values.config.datadir }}
+          {{- if .Values.lighthouse.staking }}
+            - --staking
+          {{- end }}
+          {{- if .Values.lighthouse.jwtSecret }}
+            - --execution-jwt=/jwt-secret/jwt
+          {{- end }}
+            - --metrics
+            - --metrics-address=0.0.0.0
+            - --http
+            - --http-address=0.0.0.0
+            - --disable-upnp
+            - --validator-monitor-auto
+            - --port={{ .Values.service.p2p.tcp.port }}
+            - --discovery-port={{ .Values.service.p2p.udp.port }}
+            - --enr-udp-port={{ .Values.service.p2p.udp.port }}
+          {{- range $key, $value := .Values.extraArgs }}
+            {{- /* Accept keys without values or with false as value */}}
+            {{- if eq ($value | quote | len) 2 }}
+            - --{{ $key }}
+            {{- else }}
+            - --{{ $key }}={{ $value }}
+            {{- end }}
+          {{- end }}
+          ports:
+            - name: p2p-tcp
+              containerPort: {{ .Values.service.p2p.tcp.port}}
+              protocol: TCP
+            {{- if .Values.service.p2p.enableHostPort }}
+              hostPort: {{ .Values.service.p2p.tcp.port }}
+            {{- end }}
+            - name: p2p-udp
+              containerPort: {{ .Values.service.p2p.udp.port}}
+              protocol: UDP
+            {{- if .Values.service.p2p.enableHostPort }}
+              hostPort: {{ .Values.service.p2p.udp.port }}
+            {{- end }}
+            - name: metrics
+              containerPort: 5054
+              protocol: TCP
+            - name: http
+              containerPort: 5052
+              protocol: TCP
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      volumes:
+        - name: entrypoint
+          configMap:
+            name: {{ include "lighthouse-beacon.fullname" . }}-entrypoint
+            defaultMode: 0777
+      {{- if .Values.lighthouse.jwtSecret }}
+        - name: jwt-secret
+          secret:
+            secretName: {{ .Values.lighthouse.jwtSecret }}
+      {{- end }}
+  {{- if not .Values.persistence.enabled }}
+        - name: data
+          emptyDir: {}
+  {{- else if .Values.persistence.existingClaim }}
+        - name: data
+          persistentVolumeClaim:
+            {{- with .Values.persistence.existingClaim }}
+            claimName: {{ tpl . $ }}
+            {{- end }}
+  {{- else }}
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+        labels:
+          {{- include "lighthouse-beacon.selectorLabels" . | nindent 10 }}
+      spec:
+        accessModes:
+          - {{ .Values.persistence.accessMode | quote }}
+        resources:
+          requests:
+            storage: {{ .Values.persistence.size | quote }}
+        {{- if .Values.persistence.storageClass }}
+        {{- if (eq "-" .Values.persistence.storageClass) }}
+        storageClassName: ""
+        {{- else }}
+        storageClassName: "{{ .Values.persistence.storageClass }}"
+        {{- end }}
+        {{- end }}
+  {{- end }}

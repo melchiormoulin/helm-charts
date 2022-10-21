@@ -10,7 +10,8 @@ permissions:
   actions: write
   pull-requests: write
   issues: write
-  contents: read
+  contents: write
+  packages: write
 
 jobs:
   helm-release:
@@ -32,7 +33,7 @@ jobs:
 
       - name: 'helm:package:push'
         run: |
-          echo ${{ secrets.GH_TOKEN }} | helm registry login ghcr.io --username kilnfi --password-stdin
+          echo ${{ secrets.GITHUB_TOKEN }} | helm registry login ghcr.io --username kilnfi --password-stdin
           for package in $(find . -name "*.tgz" -maxdepth 1); do
             helm push $package oci://ghcr.io/kilnfi/helm-charts/
           done

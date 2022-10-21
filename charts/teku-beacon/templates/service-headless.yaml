@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "teku-beacon.fullname" . }}
+  labels:
+    {{- include "teku-beacon.labels" . | nindent 4 }}
+spec:
+  clusterIP: None
+  ports:
+    - port: 5051
+      name: rpc
+      targetPort: rpc
+      protocol: TCP
+  selector:
+    {{- include "teku-beacon.selectorLabels" . | nindent 4 }}

@@ -1,0 +1,5 @@
+extraArgs:
+  eth1-endpoints: http://mainnet-geth-rpc:8545,https://mainnet.infura.io/v3/
+
+persistence:
+  size: 50Gi

@@ -1,0 +1,158 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "teku-beacon.fullname" . }}
+  labels:
+    {{- include "teku-beacon.labels" . | nindent 4 }}
+spec:
+  serviceName: {{ include "teku-beacon.fullname" . }}
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  podManagementPolicy: {{ .Values.podManagementPolicy }}
+  updateStrategy:
+    type: {{ .Values.updateStrategyType }}
+    {{- if (eq "OnDelete" .Values.updateStrategyType) }}
+    rollingUpdate: null
+    {{- end }}
+  selector:
+    matchLabels:
+      {{- include "teku-beacon.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+      {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "teku-beacon.selectorLabels" . | nindent 8 }}
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum | trunc 63 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "teku-beacon.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          volumeMounts:
+            - mountPath: /data
+              name: data
+            - mountPath: /config
+              name: config
+            - mountPath: /entrypoint
+              name: entrypoint
+          {{- if .Values.jwtSecret }}
+            - name: jwt-secret
+              mountPath: /jwt-secret
+          {{- end }}
+          {{- if .Values.extraVolumeMounts }}
+            {{- toYaml .Values.extraVolumeMounts | nindent 12 }}
+          {{- end }}
+          {{- if .Values.env }}
+          env:
+            {{- toYaml .Values.env | nindent 12 }}
+          {{- end }}
+          command:
+            - /entrypoint/entrypoint.sh
+          args:
+            - /opt/teku/bin/teku
+            - --config-file=/config/config.yaml
+            - --data-base-path=/data
+            - --metrics-enabled=true
+            - --metrics-host-allowlist=*
+            - --metrics-port=8008
+            - --log-destination=CONSOLE
+            - --rest-api-cors-origins=*
+            - --rest-api-enabled=true
+            - --rest-api-host-allowlist=*
+            - --log-include-validator-duties-enabled=true
+          {{- if .Values.jwtSecret }}
+            - --ee-jwt-secret-file=/jwt-secret/jwt
+          {{- end }}
+          {{- range $key, $value := .Values.extraArgs }}
+            {{- /* Accept keys without values or with false as value */}}
+            {{- if eq ($value | quote | len) 2 }}
+            - --{{ $key }}
+            {{- else }}
+            - --{{ $key }}={{ $value }}
+            {{- end }}
+          {{- end }}
+          ports:
+            - name: metrics
+              containerPort: 8008
+            - name: rpc
+              containerPort: 5051
+            - name: p2p-tcp
+              containerPort: 9000
+              protocol: TCP
+              hostPort: 9000
+            - name: p2p-udp
+              containerPort: 9000
+              protocol: UDP
+              hostPort: 9000
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      volumes:
+        - name: entrypoint
+          configMap:
+            name: {{ include "teku-beacon.fullname" . }}-entrypoint
+            defaultMode: 0777
+        {{- if .Values.jwtSecret }}
+        - name: jwt-secret
+          secret:
+            secretName: {{ .Values.jwtSecret }}
+        {{- end }}
+        - name: config
+          configMap:
+            name: {{ include "teku-beacon.fullname" . }}-config
+      {{- if .Values.extraVolumes }}
+        {{ toYaml .Values.extraVolumes | nindent 8 }}
+      {{- end }}
+  {{- if not .Values.persistence.enabled }}
+        - name: data
+          emptyDir: {}
+  {{- else if .Values.persistence.existingClaim }}
+        - name: data
+          persistentVolumeClaim:
+            {{- with .Values.persistence.existingClaim }}
+            claimName: {{ tpl . $ }}
+            {{- end }}
+  {{- else }}
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+        labels:
+          {{- include "teku-beacon.selectorLabels" . | nindent 10 }}
+      spec:
+        accessModes:
+          - {{ .Values.persistence.accessMode | quote }}
+        resources:
+          requests:
+            storage: {{ .Values.persistence.size | quote }}
+        {{- if .Values.persistence.storageClass }}
+        {{- if (eq "-" .Values.persistence.storageClass) }}
+        storageClassName: ""
+        {{- else }}
+        storageClassName: "{{ .Values.persistence.storageClass }}"
+        {{- end }}
+        {{- end }}
+  {{- end }}

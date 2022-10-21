@@ -1,0 +1,30 @@
+name: 'Pre Commit'
+
+on:
+  push:
+    branches:
+    - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  pre-commit:
+    name: 'pre-commit'
+    runs-on: ubuntu-20.04
+    steps:
+
+    - name: Checkout
+      uses: actions/checkout@v3
+
+    - uses: actions/setup-python@v3
+
+    - name: 'asdf:install'
+      uses: asdf-vm/actions/install@v1.1.0
+
+    - name: Check modules
+      uses: pre-commit/action@v2.0.3
+      with:
+        extra_args: --show-diff-on-failure --all-files
+

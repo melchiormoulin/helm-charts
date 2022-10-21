@@ -1,0 +1,6 @@
+extraArgs:
+  network: prater
+  eth1-endpoints: http://goerli-geth-rpc:8545,https://goerli.infura.io/v3/
+
+persistence:
+  size: 50Gi

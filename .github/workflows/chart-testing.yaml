@@ -1,0 +1,67 @@
+name: Lint and Test Charts
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  lint-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Get base_sha
+        run: |
+          set -x
+          # "Set base sha..."
+          if [[ -n "${{ inputs.base_sha }}" ]]; then
+            echo "base_sha=${{ inputs.base_sha }}" >> $GITHUB_OUTPUT
+          elif [[ -n "${{ github.event.pull_request.base.sha }}" ]] && [[ "${{ github.event.pull_request.base.sha }}" != "0000000000000000000000000000000000000000" ]]; then
+            echo "base_sha=${{ github.event.pull_request.base.sha }}" >> $GITHUB_OUTPUT
+          elif [[ -n "${{ github.event.before }}" ]] && [[ "${{ github.event.before }}" != "0000000000000000000000000000000000000000" ]]; then
+            echo "base_sha=${{ github.event.before }}" >> $GITHUB_OUTPUT
+          fi
+        id: base-sha
+
+      - name: 'asdf:install'
+        uses: asdf-vm/actions/install@v1.1.0
+
+      - uses: actions/setup-python@v2
+        with:
+          python-version: 3.7
+
+      - name: Set up chart-testing
+        uses: helm/chart-testing-action@v2.1.0
+
+      - name: Run chart-testing (list-changed)
+        id: list-changed
+        run: |
+          set -euo pipefail
+          set -x
+          echo "changed=$(
+            ct list-changed --since "${BASE_SHA}" --target-branch main --chart-dirs charts \
+            | awk -v d="," '{gsub(/charts\//, ""); s=(NR==1?s:s d) "\"" $0 "\""}END{print "["s"]"}'
+          )" >> $GITHUB_OUTPUT
+        env:
+          BASE_SHA: ${{ steps.base-sha.outputs.base_sha }}
+
+      - name: Run chart-testing (lint)
+        if: github.ref != 'refs/heads/main'
+        run: ct lint --since "${BASE_SHA}" --target-branch main --chart-dirs charts
+        env:
+          BASE_SHA: ${{ steps.base-sha.outputs.base_sha }}
+
+      - name: Check charts documentation
+        uses: pre-commit/action@v2.0.3
+        with:
+          extra_args: --show-diff-on-failure --all-files
+    outputs:
+      changed: ${{ steps.list-changed.outputs.changed }}
+

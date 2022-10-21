@@ -1,0 +1,11 @@
+apiVersion: v2
+name: erigon
+description: A Helm chart for Erigon Ethereum Execution Layer client
+sources:
+  - https://github.com/ledgerwatch/erigon
+type: application
+version: 6.0.0
+appVersion: v2022.09.01
+maintainers:
+  - name: kiln
+    email: contact@kiln.fi

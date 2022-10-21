@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "lighthouse-beacon.fullname" . }}-metrics
+  labels:
+    {{- include "lighthouse-beacon.labels" . | nindent 4 }}
+spec:
+  publishNotReadyAddresses: true
+  ports:
+    - port: 5054
+      name: metrics
+      targetPort: metrics
+      protocol: TCP
+  selector:
+    {{- include "lighthouse-beacon.selectorLabels" . | nindent 4 }}

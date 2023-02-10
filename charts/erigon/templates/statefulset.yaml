@@ -82,7 +82,7 @@ spec:
             - --http.vhosts=*
             - --authrpc.addr=0.0.0.0
             - --authrpc.vhosts=*
-            - --http.api=eth,erigon,engine,trace
+            - --http.api=eth,net,web3,erigon,engine,trace
           {{- if .Values.jwtSecret }}
             - --authrpc.jwtsecret=/jwt-secret/jwt
           {{- end }}

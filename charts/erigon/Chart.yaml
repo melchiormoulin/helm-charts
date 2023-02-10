@@ -4,8 +4,8 @@ description: A Helm chart for Erigon Ethereum Execution Layer client
 sources:
   - https://github.com/ledgerwatch/erigon
 type: application
-version: 6.0.0
-appVersion: v2022.09.01
+version: 6.1.0
+appVersion: v2.28.1
 maintainers:
   - name: kiln
     email: contact@kiln.fi

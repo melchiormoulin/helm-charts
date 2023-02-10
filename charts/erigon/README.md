@@ -1,6 +1,6 @@
 # erigon
 
-![Version: 6.0.0](https://img.shields.io/badge/Version-6.0.0-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: v2022.09.01](https://img.shields.io/badge/AppVersion-v2022.09.01-informational?style=flat-square)
+![Version: 6.1.0](https://img.shields.io/badge/Version-6.1.0-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: v2.28.1](https://img.shields.io/badge/AppVersion-v2.28.1-informational?style=flat-square)
 
 A Helm chart for Erigon Ethereum Execution Layer client
 

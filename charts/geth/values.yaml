@@ -8,7 +8,7 @@ image:
   repository: ethereum/client-go
   pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart appVersion.
-  tag: ""
+  tag: "v1.10.26"
 
 imagePullSecrets: []
 nameOverride: ""
